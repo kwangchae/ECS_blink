@@ -92,21 +92,21 @@ void normalSequence(){
     switch (normalState) {
         case 0: // RED
             setAllLEDs(255, 0, 0);
+            Serial.println("RED");
             tNormal.setInterval(redDuration);
             normalState = 1;
-            Serial.println("RED");
             break;
         case 1: // YELLOW
             setAllLEDs(0, 255, 0);
-            tNormal.setInterval(yellowDuration);
-            normalState = 2;
             Serial.println("YELLOW");
+            tNormal.setInterval(yellowDuration);
+            normalState = 2;            
             break;
         case 2: // GREEN
             setAllLEDs(0, 0, 255);
-            tNormal.setInterval(greenDuration);
-            normalState = 3;
             Serial.println("GREEN");
+            tNormal.setInterval(greenDuration);
+            normalState = 3;            
             break;
         case 3: // Blinking Green (3Hz)
             static int blinkCount = 0;
@@ -114,27 +114,27 @@ void normalSequence(){
 
             if(blinkState){
                 setAllLEDs(0, 0, 255);
+                Serial.println("GREEN_BLINK_ON");
                 blinkState = false;
+                blinkCount++;
             } else {
                 setAllLEDs(0, 0, 0);
+                Serial.println("GREEN_BLINK_OFF");
                 blinkState = true;
-                blinkCount++;
             }
 
-            if(blinkCount > 3){
+            if(blinkCount >= 3){
                 blinkCount = 0;
                 normalState = 4;
-                tNormal.setInterval(166);
             } else {
                 tNormal.setInterval(166);
             }
-            Serial.println(blinkState ? "GREEN_BLINK_OFF" : "GREEN_BLINK_ON");
             break;
         case 4: // Yellow
             setAllLEDs(0, 255, 0);
-            tNormal.setInterval(yellowDuration);
-            normalState = 0;
             Serial.println("YELLOW");
+            tNormal.setInterval(yellowDuration);
+            normalState = 0;            
             break;
     }
 }
@@ -191,32 +191,32 @@ void setMode(Mode newMode){
 
 void checkButtons() {
     if (emergencyButtonPressed) {
+        Serial.println("Emergency button pressed");
         if(currentMode == EMERGENCY) {
             setMode(NORMAL);
         } else {
             setMode(EMERGENCY);
         }
-      Serial.println("Emergency button pressed");
       emergencyButtonPressed = false;
     }
     
     if (blinkingButtonPressed) {
+        Serial.println("Blinking button pressed");
         if(currentMode == BLINKING) {
             setMode(NORMAL);
         } else {
             setMode(BLINKING);
-        }
-      Serial.println("Blinking button pressed");
+        }      
       blinkingButtonPressed = false;
     }
     
     if (toggleButtonPressed) {
+        Serial.println("Toggle button pressed");
         if (currentMode == OFF) {
             setMode(NORMAL);
         } else {
             setMode(OFF);
-        }
-        Serial.println("Toggle button pressed");
+        }        
         toggleButtonPressed = false;
     }
 }
@@ -224,7 +224,7 @@ void checkButtons() {
 // 가변저항 값 읽기
 void readPotentiometer(){
     int potValue = analogRead(POTENTIOMETER_PIN);
-    brightness = map(potValue, 0, 1023, 10, 255);
+    brightness = map(potValue, 0, 1023, 0, 255);
 
     // 시리얼 출력 (너무 자주 출력하지 않도록 변경이 있을 때만 출력)
     static int lastBrightness = -1;
