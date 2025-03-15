@@ -150,8 +150,10 @@ void blinkingSequence(){
 
     if(blinkAllState){
         setAllLEDs(255, 255, 255);
+        Serial.println("BLINKING_ALL_ON");
     } else {
         turnOffAllLEDs();
+        Serial.println("BLINKING_ALL_OFF");
     }
     blinkAllState = !blinkAllState;
 }
@@ -175,6 +177,7 @@ void setMode(Mode newMode){
         case EMERGENCY:
             tEmergency.enable();
             Serial.println("MODE:EMERGENCY");
+            Serial.println("EMERGENCY_RED_ON");
             break;
         case BLINKING:
             tBlinking.enable();
@@ -183,6 +186,7 @@ void setMode(Mode newMode){
         case OFF:
             turnOffAllLEDs();
             Serial.println("MODE:OFF");
+            Serial.println("All_LEDs_OFF");
             break;
     }
 

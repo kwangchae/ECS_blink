@@ -1,6 +1,7 @@
 let port;
 let connectBtn;
 let redSlider, yellowSlider, greenSlider;
+let modeButtons = [];
 let mode = "NORMAL";
 let brightness = 255;
 let redDuration = 2000;
@@ -9,91 +10,82 @@ let greenDuration = 2000;
 let redState = false;
 let yellowState = false;
 let greenState = false;
-let lastMessage = "";
 let blinkTimer = 0;
 let blinkState = false;
+let messageLog = [];
 
 function setup() {
-  createCanvas(520, 400);
-  background(220);
-
+  createCanvas(950, 650);
+  background(50);
+  
   port = createSerial();
-
+  
+  // Try to connect to previously used ports
   let usedPorts = usedSerialPorts();
   if (usedPorts.length > 0) {
     port.open(usedPorts[0], 9600);
   }
+  
+  // Create UI elements
+  createUI();
+}
 
-  // Web serial connect button
+function createUI() {
+  // Connect button
   connectBtn = createButton("Connect to Arduino");
-  connectBtn.position(350, 30);
+  connectBtn.position(50, 540);
+  connectBtn.size(200, 40);
   connectBtn.mousePressed(connectBtnClick);
-
-  // Create sliders for each light duration
-  textSize(14);
   
-  text("Red Duration (ms):", 10, 35);
-  redSlider = createSlider(500, 5000, redDuration, 10);
-  redSlider.position(150, 25);
-  redSlider.size(180);
-  redSlider.mouseReleased(() => changeDuration("RED", redSlider.value()));
+  // Duration sliders
+  fill(255);
+  textSize(16);
+  text("Red Duration (ms):", 62, 425);
+  redSlider = createSlider(500, 5000, redDuration, 100);
+  redSlider.position(200, 410);
+  redSlider.size(300);
   
-  text("Yellow Duration (ms):", 10, 65);
-  yellowSlider = createSlider(100, 2000, yellowDuration, 10);
-  yellowSlider.position(150, 55);
-  yellowSlider.size(180);
-  yellowSlider.mouseReleased(() => changeDuration("YELLOW", yellowSlider.value()));
+  text("Yellow Duration (ms):", 45, 455);
+  yellowSlider = createSlider(100, 2000, yellowDuration, 100);
+  yellowSlider.position(200, 440);
+  yellowSlider.size(300);
   
-  text("Green Duration (ms):", 10, 95);
-  greenSlider = createSlider(500, 5000, greenDuration, 10);
-  greenSlider.position(150, 85);
-  greenSlider.size(180);
-  greenSlider.mouseReleased(() => changeDuration("GREEN", greenSlider.value()));
+  text("Green Duration (ms):", 45, 485);
+  greenSlider = createSlider(500, 5000, greenDuration, 100);
+  greenSlider.position(200, 470);
+  greenSlider.size(300);
+  
+  // Apply button for all sliders
+  let applyBtn = createButton("Apply Durations");
+  applyBtn.position(520, 440);
+  applyBtn.size(150, 40);
+  applyBtn.mousePressed(applyDurations);
   
   // Mode buttons
-  createButton("NORMAL").position(350, 60).mousePressed(() => setMode("NORMAL"));
-  createButton("EMERGENCY").position(350, 90).mousePressed(() => setMode("EMERGENCY"));
-  createButton("BLINKING").position(350, 120).mousePressed(() => setMode("BLINKING"));
-  createButton("OFF").position(350, 150).mousePressed(() => setMode("OFF"));
+  let modes = ["NORMAL", "EMERGENCY", "BLINKING", "OFF"];
+  for (let i = 0; i < modes.length; i++) {
+    let btn = createButton(modes[i]);
+    btn.position(300 + i*120, 540);
+    btn.size(110, 40);
+    btn.mousePressed(() => setMode(modes[i]));
+    modeButtons.push(btn);
+  }
 }
 
 function draw() {
-  background(220);
-  
   // Read from serial port
-  let n = port.available();
-  if (n > 0) {
-    let str = port.readUntil("\n");
-    str = str.trim();
-    if (str.length > 0) {
-      lastMessage = str;
-      parseMessage(str);
-    }
-  }
+  checkSerial();
   
-  // Display traffic lights
-  drawTrafficLights();
+  // Draw the traffic light
+  drawTrafficLight();
   
-  // Display info
-  textSize(16);
-  fill(0);
+  // Draw information panel
+  drawInfoPanel();
   
-  // Draw separator line
-  stroke(150);
-  line(10, 120, 510, 120);
-  noStroke();
+  // Draw message log
+  drawMessageLog();
   
-  text("Mode: " + mode, 10, 150);
-  text("Brightness: " + brightness, 10, 175);
-  
-  text("Red Duration: " + redDuration + " ms", 10, 210);
-  text("Yellow Duration: " + yellowDuration + " ms", 10, 235);
-  text("Green Duration: " + greenDuration + " ms", 10, 260);
-  
-  // Display last message
-  text("Last message: " + lastMessage, 10, 295);
-  
-  // Connection status
+  // Update connection button text
   if (!port.opened()) {
     connectBtn.html("Connect to Arduino");
   } else {
@@ -101,70 +93,23 @@ function draw() {
   }
 }
 
-function drawTrafficLights() {
-  // Draw traffic light housing
-  fill(50);
-  rect(30, 20, 160, 80, 10);
-  
-  // Handle blinking animation
-  if (mode === "BLINKING") {
-    // Update blink state every 500ms
-    if (millis() - blinkTimer > 500) {
-      blinkTimer = millis();
-      blinkState = !blinkState;
+function checkSerial() {
+  let n = port.available();
+  if (n > 0) {
+    let message = port.readUntil("\n");
+    message = message.trim();
+    if (message.length > 0) {
+      // Add message to log
+      messageLog.unshift(message);
+      // Keep only the last 8 messages
+      if (messageLog.length > 8) {
+        messageLog.pop();
+      }
+      
+      // Parse the message
+      parseMessage(message);
     }
-    
-    if (blinkState) {
-      redState = true;
-      yellowState = true;
-      greenState = true;
-    } else {
-      redState = false;
-      yellowState = false;
-      greenState = false;
-    }
-  } else if (mode === "EMERGENCY") {
-    redState = true;
-    yellowState = false;
-    greenState = false;
-  } else if (mode === "OFF") {
-    redState = false;
-    yellowState = false;
-    greenState = false;
   }
-  // In NORMAL mode, let the Arduino control the states
-
-  // Draw the lights
-  // Red light
-  if (redState) {
-    fill(255, 0, 0, map(brightness, 0, 255, 50, 255));
-  } else {
-    fill(100, 0, 0, 100);
-  }
-  ellipse(70, 60, 40, 40);
-  
-  // Yellow light
-  if (yellowState) {
-    fill(255, 255, 0, map(brightness, 0, 255, 50, 255));
-  } else {
-    fill(100, 100, 0, 100);
-  }
-  ellipse(110, 60, 40, 40);
-  
-  // Green light
-  if (greenState) {
-    fill(0, 255, 0, map(brightness, 0, 255, 50, 255));
-  } else {
-    fill(0, 100, 0, 100);
-  }
-  ellipse(150, 60, 40, 40);
-  
-  // Add labels
-  fill(255);
-  textSize(12);
-  text("R", 66, 64);
-  text("Y", 106, 64);
-  text("G", 146, 64);
 }
 
 function parseMessage(message) {
@@ -230,6 +175,129 @@ function parseMessage(message) {
     greenState = false;
     return;
   }
+  if(message === "BLINKING_ALL_ON") {
+    redState = true;
+    yellowState = true;
+    greenState = true;
+    return;
+  }
+  if (message === "BLINKING_ALL_OFF") {
+    redState = false;
+    yellowState = false;
+    greenState = false;
+    return;
+  }
+  if(message === "ALL_LEDs_OFF") {
+    redState = false;
+    yellowState = false;
+    greenState = false;
+    return;
+  }
+  if(message === "EMERGENCY_RED_ON") {
+    redState = true;
+    yellowState = false;
+    greenState = false;
+    return;
+  }
+}
+
+function drawTrafficLight() {
+  // Traffic light casing
+  fill(30);
+  stroke(0);
+  strokeWeight(2);
+  rect(100, 70, 180, 320, 20);
+  
+  // Red light
+  stroke(0);
+  if (redState) {
+    fill(255, 0, 0, map(brightness, 0, 255, 50, 255));
+  } else {
+    fill(100, 0, 0, 100);
+  }
+  ellipse(190, 130, 100, 100);
+  
+  // Yellow light
+  if (yellowState) {
+    fill(255, 255, 0, map(brightness, 0, 255, 50, 255));
+  } else {
+    fill(100, 100, 0, 100);
+  }
+  ellipse(190, 230, 100, 100);
+  
+  // Green light
+  if (greenState) {
+    fill(0, 255, 0, map(brightness, 0, 255, 50, 255));
+  } else {
+    fill(0, 100, 0, 100);
+  }
+  ellipse(190, 330, 100, 100);
+  
+  // Labels
+  fill(255);
+  textSize(20);
+  text("R", 185, 135);
+  text("Y", 185, 235);
+  text("G", 185, 335);
+}
+
+function drawInfoPanel() {
+  // Panel background
+  fill(40);
+  stroke(100);
+  rect(300, 70, 300, 320, 10);
+  
+  // Title
+  fill(255);
+  textSize(20);
+  text("Traffic Light Controller", 350, 100);
+  
+  // Connection status
+  textSize(16);
+  text("Status: " + (port.opened() ? "Connected" : "Disconnected"), 320, 130);
+  
+  // Current mode
+  text("Mode: " + mode, 320, 160);
+  
+  // Brightness
+  text("Brightness: " + brightness, 320, 190);
+  
+  // Light durations
+  text("Red Duration: " + redDuration + " ms", 320, 220);
+  text("Yellow Duration: " + yellowDuration + " ms", 320, 250);
+  text("Green Duration: " + greenDuration + " ms", 320, 280);
+}
+
+function drawMessageLog() {
+  // Message log background
+  fill(20);
+  stroke(100);
+  rect(620, 160, 230, 230, 10);
+  
+  // Title
+  fill(255);
+  textSize(16);
+  text("Serial Messages:", 630, 180);
+  
+  // Messages
+  textSize(14);
+  for (let i = 0; i < messageLog.length; i++) {
+    text("> " + messageLog[i], 630, 205 + i * 25);
+  }
+}
+
+function applyDurations() {
+  if (port.opened()) {
+    // Send all durations to Arduino
+    port.write("RED:" + redSlider.value() + "\n");
+    port.write("YELLOW:" + yellowSlider.value() + "\n");
+    port.write("GREEN:" + greenSlider.value() + "\n");
+    
+    // Update local values
+    redDuration = redSlider.value();
+    yellowDuration = yellowSlider.value();
+    greenDuration = greenSlider.value();
+  }
 }
 
 function connectBtnClick() {
@@ -240,15 +308,10 @@ function connectBtnClick() {
   }
 }
 
-function changeDuration(light, duration) {
-  if (port.opened()) {
-    port.write(light + ":" + duration + "\n");
-  }
-}
-
 function setMode(newMode) {
   if (port.opened()) {
     port.write("MODE:" + newMode + "\n");
-    mode = newMode; // Update UI immediately
   }
+  // Update UI immediately
+  mode = newMode;
 }
