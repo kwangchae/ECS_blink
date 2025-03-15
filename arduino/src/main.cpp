@@ -1,14 +1,14 @@
 #include <Arduino.h>
 #include <TaskScheduler.h>
-
+#include "PinChangeInterrupt.h"
 // 핀 번호 정의
-#define RED_PIN 23  // RED_LED를 위한 PWM 핀
-#define YELLOW_PIN 24  // YRLLOW_LED를 위한 PWM 핀
-#define GREEN_PIN 25  // GREEN_LED를 위한 PWM 핀
+#define RED_PIN 9  // RED_LED를 위한 PWM 핀
+#define YELLOW_PIN 10  // YRLLOW_LED를 위한 PWM 핀
+#define GREEN_PIN 11  // GREEN_LED를 위한 PWM 핀
 
-#define BUTTON_EMERGENCY 21 // 비상모드를 위한 버튼이 연결된 핀
-#define BUTTON_BLINKING 20 // 깜박임모드를 위한 버튼이 연결된 핀
-#define BUTTON_TOGGLE 19 // ON/OFF를 위한 버튼이 연결된 핀
+#define BUTTON_TOGGLE 4 // ON/OFF를 위한 버튼이 연결된 핀
+#define BUTTON_EMERGENCY 3 // 비상모드를 위한 버튼이 연결된 핀
+#define BUTTON_BLINKING 2 // 깜박임모드를 위한 버튼이 연결된 핀
 
 #define POTENTIOMETER_PIN A0 // 밝기 조절을 위한 가변저항이 연결된 핀
 #define SERIAL_BAUDRATE 9600 // 시리얼 통신 속도
@@ -23,18 +23,16 @@ enum Mode {
 
 // 전역 변수 선언
 Mode currentMode = NORMAL; // 현재 모드 초기화
-int brightness = 255; // 최대 밝기 초기화
+int brightness = 255; // 밝기 초기화
 unsigned long redDuration = 2000; // RED_LED가 켜져있는 시간 2초
 unsigned long yellowDuration = 500; // YELLOW_LED가 켜져있는 시간 0.5초
 unsigned long greenDuration = 2000; // GREEN_LED가 켜져있는 시간 2초
 unsigned long blinkDuration = 1000; // 깜박임 시간 1초
 
-// 버튼 디바운스 관련 변수
-bool emergencyButtonState = false; // 비상모드 버튼 눌림 여부
-bool blinkingButtonState = false; // 깜박임모드 버튼 눌림 여부
-bool toggleButtonState = false; // ON/OFF 토글 버튼 상태
-unsigned long lastDebounceTime = 0; // 마지막 디바운스 시간
-unsigned long debounceDelay = 50; // 디바운스 딜레이
+// 버튼 눌림 여부
+volatile bool emergencyButtonPressed = false; // 비상모드 버튼 눌림 여부
+volatile bool blinkingButtonPressed = false; // 깜박임모드 버튼 눌림 여부
+volatile bool toggleButtonPressed = false; // ON/OFF 토글 버튼 눌림 여부
 
 // 함수 선언
 void normalSequence();
@@ -43,6 +41,18 @@ void blinkingSequence();
 void checkButtons();
 void readPotentiometer();
 void processSerial();
+
+void emergencyISR() {
+    emergencyButtonPressed = true;
+}
+
+void blinkingISR() {
+    blinkingButtonPressed = true;
+}
+
+void toggleISR() {
+    toggleButtonPressed = true;
+}
 
 // TaskScheduler 객체 생성
 Scheduler runner;
@@ -53,9 +63,9 @@ Task tEmergency(100, TASK_FOREVER, &emergencySequence, &runner, false); // 비�
 Task tBlinking(500, TASK_FOREVER, &blinkingSequence, &runner, false); // 깜박임모드 Task
 
 // 버튼 체크, 가변저항 값 읽기, 시리얼 입력 처리 Task
-Task tButtons(50, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
+Task tButtons(100, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
 Task tPotentiometer(100, TASK_FOREVER, &readPotentiometer, &runner, true); // 가변저항 값 읽기 Task
-Task tSerial(100, TASK_FOREVER, &processSerial, &runner, true); // 시리얼 입력 처리 Task
+Task tSerial(50, TASK_FOREVER, &processSerial, &runner, true); // 시리얼 입력 처리 Task
 
 
 // 기본 시퀀스 상태 변수
@@ -111,7 +121,7 @@ void normalSequence(){
                 blinkCount++;
             }
 
-            if(blinkCount >= 3){
+            if(blinkCount > 3){
                 blinkCount = 0;
                 normalState = 4;
                 tNormal.setInterval(166);
@@ -148,7 +158,7 @@ void blinkingSequence(){
 
 // 모드 설정 함수
 void setMode(Mode newMode){
-    if (newMode == currentMode) return;
+    //if (newMode == currentMode) return;
 
     // 이전 모드 종료
     tNormal.disable();
@@ -179,45 +189,36 @@ void setMode(Mode newMode){
     currentMode = newMode;
 }
 
-// 버튼 체크
-void checkButtons(){
-    // 버튼 읽기
-    bool emergencyReading = digitalRead(BUTTON_EMERGENCY);
-    bool blinkingReading = digitalRead(BUTTON_BLINKING);
-    bool toggleReading = digitalRead(BUTTON_TOGGLE);
-
-    // 디바운스 처리
-    if(emergencyReading != emergencyButtonState ||
-        blinkingReading != blinkingButtonState || 
-        toggleReading != toggleButtonState){
-        lastDebounceTime = millis();
-    }
-
-    if((millis() - lastDebounceTime) > debounceDelay){
-        // 비상모드 버튼이 눌렸을 때
-        if(emergencyReading && !emergencyButtonState){
+void checkButtons() {
+    if (emergencyButtonPressed) {
+        if(currentMode == EMERGENCY) {
+            setMode(NORMAL);
+        } else {
             setMode(EMERGENCY);
         }
-
-        // 깜박임모드 버튼이 눌렸을 때
-        if (blinkingReading && !blinkingButtonState){
+      Serial.println("Emergency button pressed");
+      emergencyButtonPressed = false;
+    }
+    
+    if (blinkingButtonPressed) {
+        if(currentMode == BLINKING) {
+            setMode(NORMAL);
+        } else {
             setMode(BLINKING);
         }
-
-        // ON/OFF 토글 버튼이 눌렸을 때
-        if (toggleReading && !toggleButtonState){
-            if(currentMode == OFF){
-                setMode(NORMAL);
-            } else {
-                setMode(OFF);
-            }
-        }
+      Serial.println("Blinking button pressed");
+      blinkingButtonPressed = false;
     }
-
-    // 버튼 상태 업데이트
-    emergencyButtonState = emergencyReading;
-    blinkingButtonState = blinkingReading;
-    toggleButtonState = toggleReading;
+    
+    if (toggleButtonPressed) {
+        if (currentMode == OFF) {
+            setMode(NORMAL);
+        } else {
+            setMode(OFF);
+        }
+        Serial.println("Toggle button pressed");
+        toggleButtonPressed = false;
+    }
 }
 
 // 가변저항 값 읽기
@@ -225,9 +226,13 @@ void readPotentiometer(){
     int potValue = analogRead(POTENTIOMETER_PIN);
     brightness = map(potValue, 0, 1023, 10, 255);
 
-    // 시리얼 출력
-    Serial.print("Brightness: ");
-    Serial.println(brightness);
+    // 시리얼 출력 (너무 자주 출력하지 않도록 변경이 있을 때만 출력)
+    static int lastBrightness = -1;
+    if (brightness != lastBrightness) {
+        Serial.print("Brightness: ");
+        Serial.println(brightness);
+        lastBrightness = brightness;
+    }
 }
 
 // 시리얼 입력 처리
@@ -235,7 +240,7 @@ void processSerial() {
     if (Serial.available() > 0) {
       String command = Serial.readStringUntil('\n');
       command.trim();
-      
+
       // Process commands in format "PARAM:VALUE"
       int separatorPos = command.indexOf(':');
       if (separatorPos > 0) {
@@ -274,16 +279,20 @@ void setup() {
     pinMode(YELLOW_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
     
-    pinMode(BUTTON_EMERGENCY, INPUT_PULLUP);
-    pinMode(BUTTON_BLINKING, INPUT_PULLUP);
-    pinMode(BUTTON_TOGGLE, INPUT_PULLUP);
+    pinMode(BUTTON_EMERGENCY, INPUT);
+    pinMode(BUTTON_BLINKING, INPUT);
+    pinMode(BUTTON_TOGGLE, INPUT);
     
     pinMode(POTENTIOMETER_PIN, INPUT);
-    
+
+    attachInterrupt(digitalPinToInterrupt(BUTTON_EMERGENCY), emergencyISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(BUTTON_BLINKING), blinkingISR, RISING);
+    attachPCINT(digitalPinToPCINT(BUTTON_TOGGLE), toggleISR, RISING);
+
     // 시리얼 통신 시작
     Serial.begin(9600);
     Serial.println("Traffic Light System Started");
-    
+
     // TaskScheduler 시작
     setMode(NORMAL);
 }

@@ -10,6 +10,7 @@
             "includePath": [
                 "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/include",
                 "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/src",
+                "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/.pio/libdeps/uno/PinChangeInterrupt/src",
                 "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/.pio/libdeps/uno/TaskScheduler/src",
                 "C:/Users/kwangchae/.platformio/packages/framework-arduino-avr/cores/arduino",
                 "C:/Users/kwangchae/.platformio/packages/framework-arduino-avr/variants/standard",
@@ -26,6 +27,7 @@
                 "path": [
                     "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/include",
                     "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/src",
+                    "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/.pio/libdeps/uno/PinChangeInterrupt/src",
                     "C:/Users/kwangchae/Documents/GitHub/ECS_blink/arduino/.pio/libdeps/uno/TaskScheduler/src",
                     "C:/Users/kwangchae/.platformio/packages/framework-arduino-avr/cores/arduino",
                     "C:/Users/kwangchae/.platformio/packages/framework-arduino-avr/variants/standard",
