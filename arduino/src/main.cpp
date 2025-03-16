@@ -179,7 +179,6 @@ void setMode(Mode newMode){
             Serial.println("ALL_LEDs_OFF");
             break;
     }
-
     currentMode = newMode;
 }
 
