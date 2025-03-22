@@ -30,9 +30,9 @@ unsigned long yellowDuration = 500; // YELLOW_LED가 켜져있는 시간 0.5초
 unsigned long greenDuration = 2000; // GREEN_LED가 켜져있는 시간 2초
 
 // LED 색상 값 저장 변수
-int currentRedValue = 0;
-int currentYellowValue = 0;
-int currentGreenValue = 0;
+int currentRedValue = 0; // 현재 RED_LED 색상 값
+int currentYellowValue = 0; // 현재 YELLOW_LED 색상 값
+int currentGreenValue = 0; // 현재 GREEN_LED 색상 값
 
 // 버튼 눌림 여부
 volatile bool emergencyButtonPressed = false; // 비상모드 버튼 눌림 여부
@@ -66,18 +66,10 @@ Task tNormal(redDuration, TASK_FOREVER, &normalSequence, &runner, false); // 일
 Task tEmergency(100, TASK_FOREVER, &emergencySequence, &runner, false); // 비상모드 Task
 Task tBlinking(500, TASK_FOREVER, &blinkingSequence, &runner, false); // 깜박임모드 Task
 
-Task tButtons(50, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
-Task tPotentiometer(50, TASK_FOREVER, &readPotentiometer, &runner, true); // 가변저항 값 읽기 Task
-Task tSerial(50, TASK_FOREVER, &processSerial, &runner, true); // 시리얼 입력 처리 Task
+Task tButtons(20, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
+Task tPotentiometer(20, TASK_FOREVER, &readPotentiometer, &runner, true); // 가변저항 값 읽기 Task
+Task tSerial(20, TASK_FOREVER, &processSerial, &runner, true); // 시리얼 입력 처리 Task
 Task tUpdateLEDs(20, TASK_FOREVER, &updateLEDs, &runner, true); // LED 업데이트 Task
-
-// 일반모드 시퀀스 상태 변수
-int normalState = 0; // 일반모드 상태
-// 0: RED
-// 1: YELLOW
-// 2: GREEN
-// 3: Blinking Green
-// 4: Yellow
 
 // LED 색상 설정 함수 (내부 상태만 변경)
 void setLEDColors(int r, int y, int g) {
@@ -93,6 +85,14 @@ void updateLEDs() {
     analogWrite(YELLOW_PIN, currentYellowValue * brightness / 255);
     analogWrite(GREEN_PIN, currentGreenValue * brightness / 255);
 }
+
+// 일반모드 시퀀스 상태 변수
+int normalState = 0; // 일반모드 상태
+// 0: RED
+// 1: YELLOW
+// 2: GREEN
+// 3: Blinking Green
+// 4: Yellow
 
 // 일반모드 시퀀스 함수 정의 (RED -> YELLOW -> GREEN -> Blinking Green -> YELLOW)
 void normalSequence(){
@@ -196,38 +196,39 @@ void setMode(Mode newMode){
     currentMode = newMode;
 }
 
+// 버튼 체크 함수, 버튼 눌림 여부에 따라 모드 변경
 void checkButtons() {
-    if (emergencyButtonPressed) {
-        Serial.println("Emergency button pressed");
-        if(currentMode == EMERGENCY) {
-            setMode(NORMAL);
+    if (emergencyButtonPressed) { // 비상모드 버튼 눌림
+        Serial.println("Emergency button pressed"); 
+        if(currentMode == EMERGENCY) { 
+            setMode(NORMAL); // 비상모드에서 일반모드로 전환
         } else {
-            setMode(EMERGENCY);
+            setMode(EMERGENCY); // 비상모드로 전환
         }
-      emergencyButtonPressed = false;
+      emergencyButtonPressed = false; 
     }
-    if (blinkingButtonPressed) {
+    if (blinkingButtonPressed) { // 깜박임모드 버튼 눌림
         Serial.println("Blinking button pressed");
-        if(currentMode == BLINKING) {
-            setMode(NORMAL);
+        if(currentMode == BLINKING) { 
+            setMode(NORMAL); // 깜박임모드에서 일반모드로 전환
         } else {
-            setMode(BLINKING);
+            setMode(BLINKING); // 깜박임모드로 전환
         }      
       blinkingButtonPressed = false;
     }
-    if (toggleButtonPressed) {
+    if (toggleButtonPressed) { // ON/OFF 토글 버튼 눌림
         Serial.println("Toggle button pressed");
         if (currentMode == OFF) {
-            setMode(NORMAL);
+            setMode(NORMAL); // OFF 상태에서 일반모드로 전환
         } else {
-            setMode(OFF);
+            setMode(OFF); // 현재 모드에서 OFF 상태로 전환
         }        
         toggleButtonPressed = false;
     }
 }
 
 // 가변저항 값 읽기
-void readPotentiometer(){
+void readPotentiometer(){ 
     int potValue = analogRead(POTENTIOMETER_PIN); // 가변저항 값 읽기
     int newBrightness = map(potValue, 0, 1023, 0, 255); // 0~1023 -> 0~255로 변환
     
@@ -249,12 +250,12 @@ void processSerial() {
         String param = command.substring(0, separatorPos); // : 앞부분
         String value = command.substring(separatorPos + 1); // : 뒷부분
         
-        if (param == "RED") { 
-          redDuration = value.toInt(); // 문자열을 정수로 변환
+        if (param == "RED") {
+          redDuration = value.toInt(); // 문자열을 정수로 변환 후 저장
           Serial.print("RED_DURATION:");
           Serial.println(redDuration);
         } 
-        else if (param == "YELLOW") {
+        else if (param == "YELLOW") { 
           yellowDuration = value.toInt();
           Serial.print("YELLOW_DURATION:");
           Serial.println(yellowDuration);
@@ -269,9 +270,7 @@ void processSerial() {
           else if (value == "EMERGENCY") setMode(EMERGENCY);
           else if (value == "BLINKING") setMode(BLINKING);
           else if (value == "OFF") setMode(OFF);
-          else Serial.println("Invalid mode");
         }
-        else Serial.println("Invalid command");
       }
     }
 }
@@ -279,18 +278,20 @@ void processSerial() {
 // 초기 설정
 void setup() {
     // 핀 모드 설정
-    pinMode(RED_PIN, OUTPUT);
-    pinMode(YELLOW_PIN, OUTPUT);
-    pinMode(GREEN_PIN, OUTPUT);
-    pinMode(BUTTON_EMERGENCY, INPUT_PULLUP);
-    pinMode(BUTTON_BLINKING, INPUT_PULLUP);
-    pinMode(BUTTON_TOGGLE, INPUT_PULLUP);
-    pinMode(POTENTIOMETER_PIN, INPUT);
+    pinMode(RED_PIN, OUTPUT); // RED_LED 핀을 출력으로 설정
+    pinMode(YELLOW_PIN, OUTPUT); // YELLOW_LED 핀을 출력으로 설정
+    pinMode(GREEN_PIN, OUTPUT); // GREEN_LED 핀을 출력으로 설정
+    pinMode(BUTTON_EMERGENCY, INPUT_PULLUP); // 비상모드 버튼 핀을 입력으로 설정 (풀업 저항 사용)
+    pinMode(BUTTON_BLINKING, INPUT_PULLUP); // 깜박임모드 버튼 핀을 입력으로 설정 (풀업 저항 사용)
+    pinMode(BUTTON_TOGGLE, INPUT_PULLUP); // ON/OFF 토글 버튼 핀을 입력으로 설정 (풀업 저항 사용)
+    pinMode(POTENTIOMETER_PIN, INPUT); // 가변저항 핀을 입력으로 설정
 
     // 인터럽트 설정
-    attachInterrupt(digitalPinToInterrupt(BUTTON_EMERGENCY), emergencyISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(BUTTON_BLINKING), blinkingISR, RISING);
-    attachPCINT(digitalPinToPCINT(BUTTON_TOGGLE), toggleISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(BUTTON_EMERGENCY), emergencyISR, RISING); // 비상모드 버튼 인터럽트 설정
+    attachInterrupt(digitalPinToInterrupt(BUTTON_BLINKING), blinkingISR, RISING); // 깜박임모드 버튼 인터럽트 설정
+    
+    // PinChangeInterrupt 라이브러리 사용하여 인터럽트 설정
+    attachPCINT(digitalPinToPCINT(BUTTON_TOGGLE), toggleISR, RISING); // ON/OFF 토글 버튼 인터럽트 설정
 
     // 시리얼 통신 시작
     Serial.begin(9600);
