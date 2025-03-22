@@ -4,9 +4,9 @@
 
 ## 영상
 ### 회로구성 및 main.cpp 설명
-[![회로구성 및 main.cpp 설명](https://img.youtube.com/vi/DMLTlXdNtMo/maxresdefault.jpg)](https://www.youtube.com/watch?v=DMLTlXdNtMo)
+[![회로구성 및 main.cpp 설명](https://img.youtube.com/vi/j9kscQCVT5I/maxresdefault.jpg)](https://www.youtube.com/watch?v=j9kscQCVT5I)
 ### sketch.js 및 동작 설명
-[![sketch.js 및 동작 설명](https://img.youtube.com/vi/bf_pAkSNd5U/maxresdefault.jpg)](https://www.youtube.com/watch?v=bf_pAkSNd5U)
+[![sketch.js 및 동작 설명](https://img.youtube.com/vi/Hvd-Ws8n4vo/maxresdefault.jpg)](https://www.youtube.com/watch?v=Hvd-Ws8n4vo)
 
 ## 주요 기능
 
