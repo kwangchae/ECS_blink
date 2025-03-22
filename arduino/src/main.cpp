@@ -7,8 +7,8 @@
 #define YELLOW_PIN 10  // YRLLOW_LED를 위한 PWM 핀
 #define GREEN_PIN 11  // GREEN_LED를 위한 PWM 핀
 
-#define BUTTON_BLINKING 2 // 깜박임모드를 위한 버튼이 연결된 핀
-#define BUTTON_EMERGENCY 3 // 비상모드를 위한 버튼이 연결된 핀
+#define BUTTON_EMERGENCY 2 // 비상모드를 위한 버튼이 연결된 핀
+#define BUTTON_BLINKING 3 // 깜박임모드를 위한 버튼이 연결된 핀
 #define BUTTON_TOGGLE 4 // ON/OFF를 위한 버튼이 연결된 핀
 
 #define POTENTIOMETER_PIN A0 // 밝기 조절을 위한 가변저항이 연결된 핀
@@ -28,7 +28,11 @@ int brightness = 255; // 밝기 초기화
 unsigned long redDuration = 2000; // RED_LED가 켜져있는 시간 2초
 unsigned long yellowDuration = 500; // YELLOW_LED가 켜져있는 시간 0.5초
 unsigned long greenDuration = 2000; // GREEN_LED가 켜져있는 시간 2초
-unsigned long blinkDuration = 1000; // 깜박임 시간 1초
+
+// LED 색상 값 저장 변수
+int currentRedValue = 0;
+int currentYellowValue = 0;
+int currentGreenValue = 0;
 
 // 버튼 눌림 여부
 volatile bool emergencyButtonPressed = false; // 비상모드 버튼 눌림 여부
@@ -42,6 +46,7 @@ void blinkingSequence(); // 깜박임모드 시퀀스 함수
 void checkButtons(); // 버튼 체크 함수
 void readPotentiometer(); // 가변저항 값 읽기 함수
 void processSerial(); // 시리얼 입력 처리 함수
+void updateLEDs(); // LED 업데이트 함수
 
 void emergencyISR() { // 비상모드 버튼 눌림 ISR
     emergencyButtonPressed = true;
@@ -61,9 +66,10 @@ Task tNormal(redDuration, TASK_FOREVER, &normalSequence, &runner, false); // 일
 Task tEmergency(100, TASK_FOREVER, &emergencySequence, &runner, false); // 비상모드 Task
 Task tBlinking(500, TASK_FOREVER, &blinkingSequence, &runner, false); // 깜박임모드 Task
 
-Task tButtons(100, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
-Task tPotentiometer(100, TASK_FOREVER, &readPotentiometer, &runner, true); // 가변저항 값 읽기 Task
+Task tButtons(50, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
+Task tPotentiometer(50, TASK_FOREVER, &readPotentiometer, &runner, true); // 가변저항 값 읽기 Task
 Task tSerial(50, TASK_FOREVER, &processSerial, &runner, true); // 시리얼 입력 처리 Task
+Task tUpdateLEDs(20, TASK_FOREVER, &updateLEDs, &runner, true); // LED 업데이트 Task
 
 // 일반모드 시퀀스 상태 변수
 int normalState = 0; // 일반모드 상태
@@ -73,30 +79,38 @@ int normalState = 0; // 일반모드 상태
 // 3: Blinking Green
 // 4: Yellow
 
-// LED 제어 함수 정의
-void setAllLEDs(int r, int y, int g) {
-    analogWrite(RED_PIN, r * brightness / 255);
-    analogWrite(YELLOW_PIN, y * brightness / 255);
-    analogWrite(GREEN_PIN, g * brightness / 255);
+// LED 색상 설정 함수 (내부 상태만 변경)
+void setLEDColors(int r, int y, int g) {
+    currentRedValue = r;
+    currentYellowValue = y;
+    currentGreenValue = g;
+}
+
+// LED 업데이트 함수 (실제 하드웨어 제어)
+void updateLEDs() {
+    // 밝기 적용하여 LED 제어
+    analogWrite(RED_PIN, currentRedValue * brightness / 255);
+    analogWrite(YELLOW_PIN, currentYellowValue * brightness / 255);
+    analogWrite(GREEN_PIN, currentGreenValue * brightness / 255);
 }
 
 // 일반모드 시퀀스 함수 정의 (RED -> YELLOW -> GREEN -> Blinking Green -> YELLOW)
 void normalSequence(){
     switch (normalState) {
         case 0: // RED
-            setAllLEDs(255, 0, 0);
+            setLEDColors(255, 0, 0);
             Serial.println("RED");
             tNormal.setInterval(redDuration);
             normalState = 1;
             break;
         case 1: // YELLOW
-            setAllLEDs(0, 255, 0);
+            setLEDColors(0, 255, 0);
             Serial.println("YELLOW");
             tNormal.setInterval(yellowDuration);
             normalState = 2;            
             break;
         case 2: // GREEN
-            setAllLEDs(0, 0, 255);
+            setLEDColors(0, 0, 255);
             Serial.println("GREEN");
             tNormal.setInterval(greenDuration);
             normalState = 3;            
@@ -106,12 +120,12 @@ void normalSequence(){
             static bool blinkState = false;
 
             if(blinkState){
-                setAllLEDs(0, 0, 255);
+                setLEDColors(0, 0, 255);
                 Serial.println("GREEN");
                 blinkState = false;
                 blinkCount++;
             } else {
-                setAllLEDs(0, 0, 0);
+                setLEDColors(0, 0, 0);
                 Serial.println("ALL_LEDs_OFF");
                 blinkState = true;
             }
@@ -124,7 +138,7 @@ void normalSequence(){
             }
             break;
         case 4: // Yellow
-            setAllLEDs(0, 255, 0);
+            setLEDColors(0, 255, 0);
             Serial.println("YELLOW");
             tNormal.setInterval(yellowDuration);
             normalState = 0;            
@@ -134,17 +148,17 @@ void normalSequence(){
 
 // 비상모드 시퀀스 함수 정의
 void emergencySequence(){
-    setAllLEDs(255, 0, 0);
+    setLEDColors(255, 0, 0);
 }
 
 // 깜박임모드 시퀀스 함수 정의
 void blinkingSequence(){
     static bool blinkAllState = false;
     if(blinkAllState){
-        setAllLEDs(255, 255, 255);
+        setLEDColors(255, 255, 255);
         Serial.println("BLINKING_ALL_ON");
     } else {
-        setAllLEDs(0, 0, 0);
+        setLEDColors(0, 0, 0);
         Serial.println("ALL_LEDs_OFF");
     }
     blinkAllState = !blinkAllState;
@@ -174,7 +188,7 @@ void setMode(Mode newMode){
             Serial.println("MODE:BLINKING");
             break;
         case OFF:
-            setAllLEDs(0, 0, 0);
+            setLEDColors(0, 0, 0);
             Serial.println("MODE:OFF");
             Serial.println("ALL_LEDs_OFF");
             break;
@@ -215,14 +229,13 @@ void checkButtons() {
 // 가변저항 값 읽기
 void readPotentiometer(){
     int potValue = analogRead(POTENTIOMETER_PIN); // 가변저항 값 읽기
-    brightness = map(potValue, 0, 1023, 0, 255); // 0~1023 -> 0~255로 변환
-
-    // 시리얼 출력
-    static int lastBrightness = -1;
-    if (brightness != lastBrightness) {
+    int newBrightness = map(potValue, 0, 1023, 0, 255); // 0~1023 -> 0~255로 변환
+    
+    // 값이 변경된 경우에만 업데이트 및 출력
+    if (abs(newBrightness - brightness) > 2) { // 작은 변화는 무시 (노이즈 방지)
+        brightness = newBrightness;
         Serial.print("Brightness: ");
         Serial.println(brightness);
-        lastBrightness = brightness;
     }
 }
 
@@ -269,9 +282,9 @@ void setup() {
     pinMode(RED_PIN, OUTPUT);
     pinMode(YELLOW_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
-    pinMode(BUTTON_EMERGENCY, INPUT);
-    pinMode(BUTTON_BLINKING, INPUT);
-    pinMode(BUTTON_TOGGLE, INPUT);
+    pinMode(BUTTON_EMERGENCY, INPUT_PULLUP);
+    pinMode(BUTTON_BLINKING, INPUT_PULLUP);
+    pinMode(BUTTON_TOGGLE, INPUT_PULLUP);
     pinMode(POTENTIOMETER_PIN, INPUT);
 
     // 인터럽트 설정
