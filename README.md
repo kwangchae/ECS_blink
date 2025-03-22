@@ -2,7 +2,12 @@
 
 이 프로젝트는 아두이노를 이용한 신호등 제어 시스템과 p5.js를 이용한 웹 기반 인터페이스로 구성되어 있습니다. TaskScheduler 라이브러리를 활용하여 다양한 기능을 동시에 실행할 수 있게 구현했습니다.
 
-[![동영상](https://img.youtube.com/vi/HJc5RSz-3os/maxresdefault.jpg)](https://www.youtube.com/watch?v=HJc5RSz-3os)
+## 영상
+### 회로구성 및 main.cpp 설명
+[![회로구성 및 main.cpp 설명](https://img.youtube.com/vi/DMLTlXdNtMo/maxresdefault.jpg)](https://www.youtube.com/watch?v=DMLTlXdNtMo)
+### sketch.js 및 동작 설명
+[![sketch.js 및 동작 설명](https://img.youtube.com/vi/bf_pAkSNd5U/maxresdefault.jpg)](https://www.youtube.com/watch?v=bf_pAkSNd5U)
+
 ## 주요 기능
 
 ### 아두이노 제어 시스템
