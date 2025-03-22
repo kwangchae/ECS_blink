@@ -25,10 +25,10 @@
   - LED 양극(+)을 디지털 핀에 연결, 음극(-)을 220Ω 저항을 통해 GND에 연결
 
 - **버튼**: 
-  - 깜빡임 모드 버튼 (디지털 핀 2)
-  - 비상 모드 버튼 (디지털 핀 3)
+  - 비상 모드 버튼 (디지털 핀 2)
+  - 깜빡임 모드 버튼 (디지털 핀 3)
   - ON/OFF 토글 버튼 (디지털 핀 4)
-  - 모든 버튼은 **풀업 저항** 사용
+  - 모든 버튼은 **내부 풀업 저항** 사용
   - 버튼의 한쪽은 GND에 연결, 다른 쪽은 디지털 핀과 양극(+)에 연결
   - 버튼이 눌리면 디지털 핀은 LOW(0V)가 되고, 눌리지 않으면 HIGH(5V) 유지
   - 인터럽트는 **RISING** 에지에 트리거 (버튼 해제 시 신호 변화)
@@ -44,9 +44,9 @@
 | LED (Red) | LOW (0V) | HIGH (5V) | 해당 없음 | OUTPUT |
 | LED (Yellow) | LOW (0V) | HIGH (5V) | 해당 없음 | OUTPUT |
 | LED (Green) | LOW (0V) | HIGH (5V) | 해당 없음 | OUTPUT |
-| 비상 모드 버튼 | HIGH (5V) | LOW (0V) | 풀업 | INPUT |
-| 깜빡임 모드 버튼 | HIGH (5V) | LOW (0V) | 풀업 | INPUT |
-| ON/OFF 토글 버튼 | HIGH (5V) | LOW (0V) | 풀업 | INPUT |
+| 비상 모드 버튼 | HIGH (5V) | LOW (0V) | 풀업 | INPUT_PULLUP |
+| 깜빡임 모드 버튼 | HIGH (5V) | LOW (0V) | 풀업 | INPUT_PULLUP |
+| ON/OFF 토글 버튼 | HIGH (5V) | LOW (0V) | 풀업 | INPUT_PULLUP |
 | 가변저항 | 0~5V (가변) | 해당 없음 | 해당 없음 | INPUT |
 
 ## 소프트웨어 구성
@@ -71,8 +71,8 @@
 ## 인터럽트 처리
 - **디지털 핀 2, 3**: attachInterrupt() 함수를 사용하여 표준 외부 인터럽트로 설정
 - **디지털 핀 4**: PinChangeInterrupt 라이브러리를 사용하여 PCINT로 설정
-- 모든 인터럽트는 RISING 에지(LOW에서 HIGH로 변화)에서 발생
-- 인터럽트가 발생하면 해당 플래그를 설정하고 메인 루프의 checkButtons() 함수에서 처리
+- 모든 인터럽트는 **RISING** 에지(LOW에서 HIGH로 변화)에서 발생
+- 인터럽트가 발생하면 해당 플래그를 설정하고 checkButtons() 함수에서 처리
 
 ## 사용 방법
 
