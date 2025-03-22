@@ -24,7 +24,7 @@ enum Mode {
 
 // 전역 변수 선언
 Mode currentMode = NORMAL; // 현재 모드 초기화
-int brightness = 255; // 밝기 초기화
+int brightness = 0; // 밝기 초기화
 unsigned long redDuration = 2000; // RED_LED가 켜져있는 시간 2초
 unsigned long yellowDuration = 500; // YELLOW_LED가 켜져있는 시간 0.5초
 unsigned long greenDuration = 2000; // GREEN_LED가 켜져있는 시간 2초
@@ -41,7 +41,6 @@ volatile bool toggleButtonPressed = false; // ON/OFF 토글 버튼 눌림 여부
 
 // 함수 선언
 void normalSequence(); // 일반모드 시퀀스 함수
-void emergencySequence(); // 비상모드 시퀀스 함수
 void blinkingSequence(); // 깜박임모드 시퀀스 함수
 void checkButtons(); // 버튼 체크 함수
 void readPotentiometer(); // 가변저항 값 읽기 함수
@@ -63,7 +62,6 @@ Scheduler runner;
 
 // Task 객체 생성
 Task tNormal(redDuration, TASK_FOREVER, &normalSequence, &runner, false); // 일반모드 Task
-Task tEmergency(100, TASK_FOREVER, &emergencySequence, &runner, false); // 비상모드 Task
 Task tBlinking(500, TASK_FOREVER, &blinkingSequence, &runner, false); // 깜박임모드 Task
 
 Task tButtons(20, TASK_FOREVER, &checkButtons, &runner, true); // 버튼 체크 Task
@@ -146,11 +144,6 @@ void normalSequence(){
     }
 }
 
-// 비상모드 시퀀스 함수 정의
-void emergencySequence(){
-    setLEDColors(255, 0, 0);
-}
-
 // 깜박임모드 시퀀스 함수 정의
 void blinkingSequence(){
     static bool blinkAllState = false;
@@ -168,7 +161,6 @@ void blinkingSequence(){
 void setMode(Mode newMode){
     // 이전 모드 비활성화
     tNormal.disable();
-    tEmergency.disable();
     tBlinking.disable();
 
     // 새 모드 설정
@@ -179,7 +171,7 @@ void setMode(Mode newMode){
             Serial.println("MODE:NORMAL");
             break;
         case EMERGENCY:
-            tEmergency.enable();
+            setLEDColors(255, 0, 0); // 비상모드에서 RED_LED 켜기
             Serial.println("MODE:EMERGENCY");
             Serial.println("RED");
             break;
@@ -217,7 +209,7 @@ void checkButtons() {
       blinkingButtonPressed = false;
     }
     if (toggleButtonPressed) { // ON/OFF 토글 버튼 눌림
-        Serial.println("Toggle button pressed");
+        Serial.println("ON/OFF button pressed");
         if (currentMode == OFF) {
             setMode(NORMAL); // OFF 상태에서 일반모드로 전환
         } else {

@@ -1,17 +1,14 @@
 let port; // 시리얼 포트 객체
 let connectBtn; // 연결 버튼
 let redSlider, yellowSlider, greenSlider; // 슬라이더
-let modeButtons = []; // 모드 버튼
 let mode = "NORMAL"; // 현재 모드
-let brightness = 255; // 밝기
+let brightness = 0; // 밝기
 let redDuration = 2000; // 각 신호등의 지속 시간
 let yellowDuration = 500;
 let greenDuration = 2000;
 let redState = false; // 각 신호등의 상태
 let yellowState = false;
 let greenState = false;
-let blinkTimer = 0; // 깜빡임 타이머
-let blinkState = false; // 깜빡임 상태
 let messageLog = []; // 시리얼 메시지 로그
 
 // 시리얼 포트 연결 및 UI 생성
@@ -51,9 +48,9 @@ function createUI() {
 function draw() {
   checkSerial(); // 시리얼 메시지 확인
   drawTrafficLight(); // 신호등 그리기
+  applyDurations(); // 지속 시간 적용
   drawInfoPanel(); // 정보 패널 그리기
   drawMessageLog(); // 메시지 로그 그리기
-  applyDurations(); // 지속 시간 적용
   
   if (!port.opened()) { // 포트가 닫혀있으면
     connectBtn.html("Connect to Arduino"); // 버튼 텍스트 변경
@@ -127,23 +124,23 @@ function drawTrafficLight() {
   rect(100, 70, 180, 320, 20); // 사각형 그리기
   
   if (redState) { // 빨간색 신호등
-    fill(255, 0, 0, map(brightness, 0, 255, 50, 255)); // 색상 설정
-  } else {
-    fill(100, 0, 0, 100);
-  }
+    fill(255, 0, 0, brightness); // 색상 설정
+  } else { 
+    fill(255, 0, 0, 0); // 색상 설정
+    }
   ellipse(190, 130, 100, 100); // 원 그리기
-  
+
   if (yellowState) { // 노란색 신호등
-    fill(255, 255, 0, map(brightness, 0, 255, 50, 255)); // 색상 설정
+    fill(255, 255, 0, brightness); // 색상 설정
   } else {
-    fill(100, 100, 0, 100);
+    fill(255, 255, 0, 0); // 색상 설정
   }
   ellipse(190, 230, 100, 100); // 원 그리기
   
   if (greenState) { // 초록색 신호등
-    fill(0, 255, 0, map(brightness, 0, 255, 50, 255)); // 색상 설정
-  } else {
-    fill(0, 100, 0, 100);
+    fill(0, 255, 0, brightness); // 색상 설정
+  } else { 
+    fill(0, 255, 0, 0); // 색상 설정
   }
   ellipse(190, 330, 100, 100); // 원 그리기
   
@@ -214,12 +211,4 @@ function connectBtnClick() {
   } else {
     port.close();
   }
-}
-
-// 모드 변경
-function setMode(newMode) {
-  if (port.opened()) { // 포트가 열려있으면
-    port.write("MODE:" + newMode + "\n"); // 메시지 전송
-  }
-  mode = newMode;
 }
