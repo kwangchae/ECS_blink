@@ -294,7 +294,7 @@ void setup() {
 
     // 시리얼 통신 시작
     Serial.begin(9600);
-    Serial.println("Traffic Light System Started");
+    Serial.println("Serial started");
 
     // TaskScheduler 시작
     setMode(NORMAL);

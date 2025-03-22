@@ -16,54 +16,35 @@ let messageLog = []; // 시리얼 메시지 로그
 
 // 시리얼 포트 연결 및 UI 생성
 function setup() {
-  createCanvas(950, 650); // 캔버스 생성
+  createCanvas(950, 600); // 캔버스 생성
   background(50); // 배경색 설정
   createUI(); // UI 생성
-
   port = createSerial(); // 시리얼 포트 생성
-  let usedPorts = usedSerialPorts(); // 사용중인 포트 목록
-  if (usedPorts.length > 0) { // 사용중인 포트가 있으면
-    port.open(usedPorts[0], 9600); // 첫 번째 포트를 연다
-  }
 }
 
 // UI 생성
 function createUI() {
   connectBtn = createButton("Connect to Arduino"); // 연결 버튼
-  connectBtn.position(110, 540); // 위치 설정
+  connectBtn.position(110, 440); // 위치 설정
   connectBtn.size(150, 40); // 크기 설정
   connectBtn.mousePressed(connectBtnClick); // 클릭 이벤트 설정
   
   fill(255); // 텍스트 색상 설정
   textSize(16); // 텍스트 크기 설정
-  text("Red Duration (ms):", 142, 425); // 텍스트 생성
+  text("Red Duration (500ms ~ 5000ms):", 292, 425); // 텍스트 생성
   redSlider = createSlider(500, 5000, redDuration, 100); // 슬라이더 생성
-  redSlider.position(300, 410); // 위치 설정
+  redSlider.position(550, 410); // 위치 설정
   redSlider.size(300); // 크기 설정
   
-  text("Yellow Duration (ms):", 124, 465); // 텍스트 생성
+  text("Yellow Duration (100ms ~ 2000ms):", 274, 465); // 텍스트 생성
   yellowSlider = createSlider(100, 2000, yellowDuration, 100); // 슬라이더 생성
-  yellowSlider.position(300, 450); // 위치 설정
+  yellowSlider.position(550, 450); // 위치 설정
   yellowSlider.size(300); // 크기 설정
   
-  text("Green Duration (ms):", 125, 505); // 텍스트 생성
+  text("Green Duration (500ms ~ 5000ms):", 275, 505); // 텍스트 생성
   greenSlider = createSlider(500, 5000, greenDuration, 100); // 슬라이더 생성
-  greenSlider.position(300, 490); // 위치 설정
+  greenSlider.position(550, 490); // 위치 설정
   greenSlider.size(300); // 크기 설정
-  
-  let applyBtn = createButton("Apply Durations"); // 버튼 생성
-  applyBtn.position(625, 440); // 위치 설정
-  applyBtn.size(150, 40); // 크기 설정
-  applyBtn.mousePressed(applyDurations); // 클릭 이벤트 설정
-  
-  let modes = ["NORMAL", "EMERGENCY", "BLINKING", "OFF"]; // 모드 목록
-  for (let i = 0; i < modes.length; i++) { // 모드 버튼 생성
-    let btn = createButton(modes[i]); // 버튼 생성
-    btn.position(300 + i*120, 540); // 위치 설정
-    btn.size(110, 40); // 크기 설정
-    btn.mousePressed(() => setMode(modes[i])); // 클릭 이벤트 설정
-    modeButtons.push(btn); // 버튼 목록에 추가
-  }
 }
 
 // 프레임마다 실행되는 함수
@@ -72,6 +53,7 @@ function draw() {
   drawTrafficLight(); // 신호등 그리기
   drawInfoPanel(); // 정보 패널 그리기
   drawMessageLog(); // 메시지 로그 그리기
+  applyDurations(); // 지속 시간 적용
   
   if (!port.opened()) { // 포트가 닫혀있으면
     connectBtn.html("Connect to Arduino"); // 버튼 텍스트 변경
@@ -210,13 +192,18 @@ function drawMessageLog() {
 // 각 신호등의 지속 시간을 적용
 function applyDurations() { 
   if (port.opened()) { // 포트가 열려있으면
-    port.write("RED:" + redSlider.value() + "\n"); // 메시지 전송
-    port.write("YELLOW:" + yellowSlider.value() + "\n");
-    port.write("GREEN:" + greenSlider.value() + "\n");
-    
-    redDuration = redSlider.value(); // 지속 시간 설정
-    yellowDuration = yellowSlider.value();
-    greenDuration = greenSlider.value();
+    if (redSlider.value() !== redDuration) { // 슬라이더 값이 변경되면
+      redDuration = redSlider.value(); // 지속 시간 설정
+      port.write("RED:" + redSlider.value() + "\n"); // 메시지 전송
+    }
+    if (yellowSlider.value() !== yellowDuration) {
+      yellowDuration = yellowSlider.value(); // 지속 시간 설정
+      port.write("YELLOW:" + yellowSlider.value() + "\n");
+    }
+    if (greenSlider.value() !== greenDuration) {
+      greenDuration = greenSlider.value(); // 지속 시간 설정
+      port.write("GREEN:" + greenSlider.value() + "\n");
+    }
   }
 }
 
