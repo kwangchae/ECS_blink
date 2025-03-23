@@ -78,8 +78,8 @@
 2. "Connect to Arduino" 버튼을 클릭하여 아두이노와 연결합니다.
 3. 슬라이더를 사용하여 각 신호의 지속 시간을 조절합니다.
 
-## 업데이트 사항 - 핸드포즈 인식 기능 추가
-
+## 업데이트 사항 - 제스처 인식 기능 추가
+[![제스처 인식 기능 설명](https://img.youtube.com/vi/vN0ygt1NNaM/maxresdefault.jpg)](https://www.youtube.com/watch?v=vN0ygt1NNaM)
 ### 핸드포즈 인식을 통한 제어
 - **ml5.js 라이브러리**: 머신러닝 기반 핸드포즈 인식 기능 추가
 - **웹캠 통합**: 비디오 캡처를 통한 손 제스처 인식 기능 구현
